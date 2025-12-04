@@ -1,0 +1,11 @@
+input[type="checkbox"] {
+    transform: scale(1.5);
+    margin-right: 0.5rem;
+    vertical-align: middle;
+}
+
+label.checkbox {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 0;
+}

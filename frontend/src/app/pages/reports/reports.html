@@ -1,0 +1,292 @@
+<section class="section">
+  <div class="container">
+    <h1 class="title is-2">Anket Raporları</h1>
+    <hr>
+
+    <!-- Dashboard Summary -->
+    <div class="columns is-multiline mb-5">
+      <!-- Toplam Anket Sayısı -->
+      <div class="column is-6">
+        <div class="box h-100 is-flex is-flex-direction-column is-justify-content-center">
+          <div class="has-text-centered">
+            <p class="heading is-size-6 mb-2">Toplam Anket</p>
+            <p class="title is-1">{{ totalAnketCount }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Aktif Anket Sayısı -->
+      <div class="column is-6">
+        <div class="box h-100 is-flex is-flex-direction-column is-justify-content-center">
+          <div class="has-text-centered">
+            <p class="heading is-size-6 mb-2">Aktif Anket</p>
+            <p class="title is-1">{{ totalActiveAnketCount }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Departmanlara Göre Toplam Anket Dağılımı -->
+      <div class="column is-6">
+        <div class="box h-100">
+          <p class="heading is-size-6 mb-3 has-text-centered">Departmanlara Göre Toplam Anket Dağılımı</p>
+          <div style="position: relative; height: 250px; width: 100%;">
+            <canvas id="departmentChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Departmanlara Göre Aktif Anket Dağılımı -->
+      <div class="column is-6">
+        <div class="box h-100">
+          <p class="heading is-size-6 mb-3 has-text-centered">Departmanlara Göre Aktif Anket Dağılımı</p>
+          <div style="position: relative; height: 250px; width: 100%;">
+            <canvas id="activeDepartmentChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Başlık ve Filtreler -->
+    <div class="level is-mobile mb-4">
+      <div class="level-left">
+        <div class="level-item">
+          <h2 class="title is-4 mb-0">Anket Listesi</h2>
+        </div>
+      </div>
+      <div class="level-right">
+        <div class="level-item">
+          <input class="input" type="text" placeholder="Ara..." style="min-width: 250px;" [(ngModel)]="searchQuery"
+            (ngModelChange)="onSearchChange($event)">
+        </div>
+        <div class="level-item">
+          <div class="select">
+            <select [(ngModel)]="sortOrder" (change)="onSortChange()">
+              <option value="id-desc">ID'ye Göre (Azalan)</option>
+              <option value="id-asc">ID'ye Göre (Artan)</option>
+              <option value="new-to-old">Tarihe Göre (Yeni → Eski)</option>
+              <option value="old-to-new">Tarihe Göre (Eski → Yeni)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tablo -->
+    <div class="box">
+      <div class="table-container">
+        <table class="table is-fullwidth is-striped is-hoverable">
+          <thead>
+            <tr>
+              <th style="width: 5%;">ID</th>
+              <th style="width: 30%;">Başlık</th>
+              <th style="width: 15%;">Oluşturan</th>
+              <th style="width: 15%;">Başlangıç</th>
+              <th style="width: 15%;">Bitiş</th>
+              <th style="width: 10%;">Durum</th>
+              <th class="has-text-centered" style="width: 10%;">İstatistikler</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (anket of filteredAnketListesi; track anket.id) {
+            <tr>
+              <td>{{ anket.id }}</td>
+              <td><strong>{{ anket.title }}</strong></td>
+              <td>{{ anket.creator_name || 'N/A' }}</td>
+              <td>{{ anket.start_date | date: 'dd/MM/yyyy' }} {{ anket.start_time | slice:0:5 }}</td>
+              <td>{{ anket.finish_date | date: 'dd/MM/yyyy' }} {{ anket.finish_time | slice:0:5 }}</td>
+              <td>
+                @if (anket.is_active) {
+                <span class="tag is-info">Aktif</span>
+                } @else {
+                <span class="tag is-danger">Süresi Doldu</span>
+                }
+              </td>
+              <td class="has-text-centered">
+                <button class="button is-small is-link" (click)="openModal(anket.id, anket.title)">
+                  <span class="icon is-small">
+                    <i class="fas fa-users"></i>
+                  </span>
+                  <span>Görüntüle</span>
+                </button>
+              </td>
+            </tr>
+            } @empty {
+            <tr>
+              <td colspan="7" class="has-text-centered">
+                @if (searchQuery.trim().length >= 2) {
+                <div class="py-4">
+                  <span class="icon is-large has-text-grey">
+                    <i class="fas fa-search fa-2x"></i>
+                  </span>
+                  <p class="mt-2">Arama sonucu bulunamadı.</p>
+                </div>
+                } @else {
+                <div class="py-4">
+                  <span class="icon is-large has-text-grey">
+                    <i class="fas fa-poll fa-2x"></i>
+                  </span>
+                  <p class="mt-2">Raporlanacak anket bulunamadı.</p>
+                </div>
+                }
+              </td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Detay Modal -->
+    <div class="modal" [class.is-active]="isModalActive">
+      <div class="modal-background" (click)="closeModal()"></div>
+      <div class="modal-card" style="width: 80%; max-width: 1000px; height: 95vh; max-height: 95vh;">
+        <header class="modal-card-head">
+          <p class="modal-card-title">Katılımcı Detayları</p>
+          <button class="delete is-large" aria-label="close" (click)="closeModal()"></button>
+        </header>
+        <section class="modal-card-body">
+          <div class="tabs is-centered is-boxed mb-4">
+            <ul>
+              <li [class.is-active]="currentTab === 'statistics'">
+                <a (click)="switchTab('statistics')">
+                  <span class="icon is-small"><i class="fas fa-chart-pie"></i></span>
+                  <span>İstatistikler</span>
+                </a>
+              </li>
+              <li [class.is-active]="currentTab === 'participants'">
+                <a (click)="switchTab('participants')">
+                  <span class="icon is-small"><i class="fas fa-users"></i></span>
+                  <span>Katılımcılar</span>
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          <h2 class="title is-5 mb-2">{{ modalAnketBasligi }}</h2>
+
+          @if (currentTab === 'participants') {
+          @if (currentView === 'list') {
+          <h3 class="subtitle is-6">Bu ankete katılan toplam kullanıcı sayısı: {{ modalKatilimcilarListesi.length }}
+          </h3>
+
+          @if (modalLoading) {
+          <div class="has-text-centered py-5">
+            <span class="icon is-large">
+              <i class="fas fa-spinner fa-pulse fa-2x"></i>
+            </span>
+            <p class="mt-2">Yükleniyor...</p>
+          </div>
+          } @else {
+          <div class="table-container">
+            <table class="table is-fullwidth is-striped is-hoverable">
+              <thead>
+                <tr>
+                  <th>Sicil</th>
+                  <th>İsim</th>
+                  <th>Katılım Tarihi</th>
+                  <th>Güncelleme Tarihi</th>
+                  <th class="has-text-right">İşlem</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (kullanici of modalKatilimcilarListesi; track kullanici.sicil) {
+                <tr style="cursor: pointer;" (click)="viewParticipantAnswers(kullanici.id, kullanici.user_name)">
+                  <td>{{ kullanici.sicil }}</td>
+                  <td>{{ kullanici.user_name }}</td>
+                  <td>{{ kullanici.created_date | date: 'dd/MM/yyyy HH:mm' }}</td>
+                  <td>{{ kullanici.update_date | date: 'dd/MM/yyyy HH:mm' }}</td>
+                  <td class="has-text-right">
+                    <span class="icon has-text-info">
+                      <i class="fas fa-chevron-right"></i>
+                    </span>
+                  </td>
+                </tr>
+                } @empty {
+                <tr>
+                  <td colspan="5" class="has-text-centered has-text-grey">
+                    <div class="py-4">
+                      <span class="icon is-large">
+                        <i class="fas fa-users-slash fa-2x"></i>
+                      </span>
+                      <p class="mt-2">Bu ankete henüz kimse katılmamış.</p>
+                    </div>
+                  </td>
+                </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          }
+          } @else {
+          <!-- Cevaplar Görünümü -->
+          <div class="mb-4">
+            <button class="button is-small is-link is-light mb-3" (click)="backToParticipantList()">
+              <span class="icon">
+                <i class="fas fa-arrow-left"></i>
+              </span>
+              <span>Listeye Dön</span>
+            </button>
+            <h3 class="subtitle is-6">
+              <strong>{{ selectedParticipantName }}</strong> kullanıcısının cevapları:
+            </h3>
+          </div>
+
+          @if (modalLoading) {
+          <div class="has-text-centered py-5">
+            <span class="icon is-large">
+              <i class="fas fa-spinner fa-pulse fa-2x"></i>
+            </span>
+            <p class="mt-2">Cevaplar yükleniyor...</p>
+          </div>
+          } @else {
+          <div class="content">
+            @for (cevap of selectedParticipantAnswers; track $index) {
+            <div class="box">
+              <p class="has-text-weight-bold mb-2">{{ $index + 1 }}. {{ cevap.soru_baslik }}</p>
+              <p class="pl-3" style="border-left: 3px solid #3273dc;">
+                {{ cevap.answer }}
+              </p>
+            </div>
+            } @empty {
+            <div class="notification is-warning is-light">
+              Cevap bulunamadı.
+            </div>
+            }
+          </div>
+          }
+          }
+          } @else if (currentTab === 'statistics') {
+          @if (modalLoading) {
+          <div class="has-text-centered py-5">
+            <span class="icon is-large">
+              <i class="fas fa-spinner fa-pulse fa-2x"></i>
+            </span>
+            <p class="mt-2">İstatistikler yükleniyor...</p>
+          </div>
+          } @else {
+          <div class="charts-grid mt-4">
+            @for (stat of statisticsData; track stat.soru_id) {
+            <div class="box h-100">
+              <h4 class="title is-6 has-text-centered mb-4">{{ stat.soru_baslik }}</h4>
+              <div class="chart-container" style="position: relative; height: 250px; width: 100%;">
+                <canvas [id]="'chart-' + stat.soru_id"></canvas>
+              </div>
+            </div>
+            } @empty {
+            <div class="notification is-warning is-light" style="grid-column: 1 / -1;">
+              Görüntülenecek istatistik bulunamadı.
+            </div>
+            }
+          </div>
+          }
+          }
+        </section>
+        <footer class="modal-card-foot is-justify-content-flex-end">
+          <button class="button" (click)="closeModal()">Kapat</button>
+        </footer>
+      </div>
+    </div>
+
+  </div>
+</section>

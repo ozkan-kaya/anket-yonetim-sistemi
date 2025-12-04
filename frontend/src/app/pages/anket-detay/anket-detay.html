@@ -1,0 +1,215 @@
+<section class="section">
+    <div class="container">
+
+        @if (loading) {
+        <div class="has-text-centered py-6">
+            <span class="icon is-large">
+                <i class="fas fa-spinner fa-pulse fa-3x"></i>
+            </span>
+            <p class="mt-3 is-size-5">Anket yükleniyor...</p>
+        </div>
+        } @else if (error) {
+        <div class="notification is-danger is-light">
+            <button class="delete" (click)="error = ''"></button>
+            {{ error }}
+        </div>
+        <div class="has-text-centered">
+            <button class="button is-link" routerLink="/">Ana Sayfaya Dön</button>
+        </div>
+        } @else if (anket) {
+        <div class="columns is-centered">
+            <div class="column is-8-desktop is-10-tablet">
+
+                <!-- Anket Başlık Kartı -->
+                <div class="card mb-5">
+                    <div class="card-content">
+                        <h1 class="title is-3 mb-4">{{ anket.title }}</h1>
+                        <div class="subtitle is-6 has-text-grey">
+                            <div class="mb-2">
+                                <span class="icon-text">
+                                    <span class="icon"><i class="fas fa-user"></i></span>
+                                    <span>Yayınlayan: {{ anket.creator_name }}</span>
+                                </span>
+                            </div>
+
+                            @if (anket.departmanlar && anket.departmanlar.length > 0) {
+                            <div class="mb-2">
+                                <span class="icon-text">
+                                    <span class="icon"><i class="fas fa-building"></i></span>
+                                    @if ($any(anket.departmanlar).includes('Tüm Departmanlar') || (totalDepartments > 0
+                                    && anket.departmanlar.length === totalDepartments)) {
+                                    <span>Tüm Departmanlar</span>
+                                    } @else {
+                                    <span>{{ anket.departmanlar.length > 1 ? 'Departmanlar' : 'Departman' }}: {{
+                                        anket.departmanlar.join(', ') }}</span>
+                                    }
+                                </span>
+                            </div>
+                            }
+
+                            <div>
+                                <span class="icon-text mr-4">
+                                    <span class="icon"><i class="far fa-calendar-alt"></i></span>
+                                    <span>Başlangıç: {{ anket.start_date | date:'dd/MM/yyyy' }} {{ anket.start_time |
+                                        slice:0:5 }}</span>
+                                </span>
+                                <span class="icon-text">
+                                    <span class="icon"><i class="far fa-calendar-alt"></i></span>
+                                    <span>Bitiş: {{ anket.finish_date | date:'dd/MM/yyyy' }} {{ anket.finish_time |
+                                        slice:0:5 }}</span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="content mb-6">
+                            {{ anket.aciklama }}
+                        </div>
+                        @if (anket.dokuman_url) {
+                        <div class="block mb-5">
+                            @if (anket.dokuman_url.endsWith('.mp4') || anket.dokuman_url.endsWith('.webm')) {
+                            <figure class="image is-16by9">
+                                <video controls class="has-ratio" style="border-radius: 8px; margin: 0 auto;"
+                                    [src]="uploadsUrl + '/' + anket.dokuman_url"></video>
+                            </figure>
+                            } @else if (anket.dokuman_url.endsWith('.pdf') || anket.dokuman_url.endsWith('.doc') ||
+                            anket.dokuman_url.endsWith('.docx')) {
+                            <div class="notification is-info is-light">
+                                <span class="icon mr-2"><i class="fas fa-file-alt"></i></span>
+                                <a [href]="uploadsUrl + '/' + anket.dokuman_url" target="_blank"
+                                    class="has-text-weight-bold">
+                                    {{ getFileName(anket.dokuman_url) }} Görüntüle/İndir
+                                </a>
+                            </div>
+                            } @else {
+                            <figure class="image">
+                                <img [src]="uploadsUrl + '/' + anket.dokuman_url" alt="Anket Görseli"
+                                    style="max-height: 400px; width: auto; border-radius: 8px; margin: 0 auto;">
+                            </figure>
+                            }
+                        </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Anket Sorular Formu -->
+                @if (isExpired) {
+                <div class="notification is-danger is-light mb-4">
+                    <span class="icon mr-2"><i class="fas fa-exclamation-triangle"></i></span>
+                    Bu anketin süresi dolmuştur.
+                </div>
+                } @else if (isUpdateMode) {
+                <div class="notification is-info is-light mb-4">
+                    <span class="icon mr-2"><i class="fas fa-info-circle"></i></span>
+                    Bu ankete daha önce katıldınız. Cevaplarınızı güncelleyebilirsiniz.
+                </div>
+                }
+
+                <form [formGroup]="anketForm" (ngSubmit)="onSubmit()">
+                    <div formArrayName="cevaplar">
+                        @for (soru of sorular; track soru.id; let i = $index) {
+                        <div [formGroupName]="i" class="box mb-4">
+                            <div class="field">
+                                @if (soru.dokuman_url) {
+                                <div class="block mb-3">
+                                    @if (soru.dokuman_url.endsWith('.mp4') || soru.dokuman_url.endsWith('.webm')) {
+                                    <figure class="image is-16by9">
+                                        <video controls class="has-ratio" style="border-radius: 8px; margin: 0 auto;"
+                                            [src]="uploadsUrl + '/' + soru.dokuman_url"></video>
+                                    </figure>
+                                    } @else if (soru.dokuman_url.endsWith('.pdf') || soru.dokuman_url.endsWith('.doc')
+                                    || soru.dokuman_url.endsWith('.docx')) {
+                                    <div class="notification is-info is-light py-2 px-4" style="width: fit-content;">
+                                        <span class="icon mr-2"><i class="fas fa-file-alt"></i></span>
+                                        <a [href]="uploadsUrl + '/' + soru.dokuman_url" target="_blank"
+                                            class="has-text-weight-bold">
+                                            {{ getFileName(soru.dokuman_url) }} Görüntüle
+                                        </a>
+                                    </div>
+                                    } @else {
+                                    <figure class="image">
+                                        <img [src]="uploadsUrl + '/' + soru.dokuman_url" alt="Soru Görseli"
+                                            style="max-height: 300px; width: auto; border-radius: 8px; margin: 0 auto;">
+                                    </figure>
+                                    }
+                                </div>
+                                }
+                                <label class="label is-size-5">
+                                    {{ i + 1 }}. {{ soru.title }}
+                                    @if (soru.is_imperative) {
+                                    <span class="has-text-danger">*</span>
+                                    }
+                                </label>
+
+                                <div class="control mt-3">
+
+                                    <!-- 0: Çoktan Seçmeli (Checkbox) -->
+                                    @if (soru.soru_type === 0) {
+                                    <app-soru-tip-1 [soruSecenekleri]="soru.soruSecenekleri || []"
+                                        formControlName="answer"></app-soru-tip-1>
+                                    }
+
+                                    <!-- 1: Tekil Seçim (Radio) -->
+                                    @if (soru.soru_type === 1) {
+                                    <app-soru-tip-2 [soruSecenekleri]="soru.soruSecenekleri || []" [soruId]="soru.id"
+                                        formControlName="answer"></app-soru-tip-2>
+                                    @if (!soru.is_imperative && cevaplarArray.at(i).get('answer')?.value !== null) {
+                                    <button type="button" class="button is-small mt-2" (click)="clearAnswer(i)">
+                                        <span class="icon is-small"><i class="fas fa-times"></i></span>
+                                        <span>Seçimi Temizle</span>
+                                    </button>
+                                    }
+                                    }
+
+                                    <!-- 2: Doğrusal Ölçek -->
+                                    @if (soru.soru_type === 2) {
+                                    <app-soru-tip-3 [soruId]="soru.id" formControlName="answer"></app-soru-tip-3>
+                                    @if (!soru.is_imperative && cevaplarArray.at(i).get('answer')?.value !== null) {
+                                    <button type="button" class="button is-small mt-2" (click)="clearAnswer(i)">
+                                        <span class="icon is-small"><i class="fas fa-times"></i></span>
+                                        <span>Seçimi Temizle</span>
+                                    </button>
+                                    }
+                                    }
+
+                                    <!-- 3: Açık Uçlu (Textbox) -->
+                                    @if (soru.soru_type === 3) {
+                                    <app-soru-tip-4 formControlName="answer"></app-soru-tip-4>
+                                    }
+
+                                </div>
+
+                                @if (cevaplarArray.at(i).get('answer')?.invalid &&
+                                cevaplarArray.at(i).get('answer')?.touched) {
+                                <p class="help is-danger">Bu alan zorunludur.</p>
+                                }
+                            </div>
+                        </div>
+                        }
+                    </div>
+
+                    @if (message) {
+                    <div class="notification is-warning is-light mb-4">
+                        {{ message }}
+                    </div>
+                    }
+
+                    @if (!isExpired) {
+                    <div class="field is-grouped is-grouped-right">
+                        <div class="control">
+                            <button type="submit" class="button is-primary" [class.is-loading]="submitting"
+                                [disabled]="!canSubmit || submitting">
+                                <span class="icon">
+                                    <i class="fas fa-paper-plane"></i>
+                                </span>
+                                <span>{{ isUpdateMode ? 'Güncelle' : 'Gönder' }}</span>
+                            </button>
+                        </div>
+                    </div>
+                    }
+                </form>
+
+            </div>
+        </div>
+        }
+
+    </div>
+</section>

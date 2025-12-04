@@ -1,0 +1,15 @@
+.table td {
+  vertical-align: middle;
+}
+
+.modal .box.question-box {
+  border-radius: 8px;
+  border-left: 4px solid #3273dc;
+}
+
+.option-row .button,
+.option-row .input {
+  height: 2.2em !important;
+  min-height: 2.2em !important;
+  max-height: 2.2em !important;
+}

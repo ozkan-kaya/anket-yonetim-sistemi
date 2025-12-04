@@ -1,0 +1,9 @@
+<div class="control">
+    @for (soruSikki of soruSecenekleri; track soruSikki.id) {
+    <label class="radio is-block mb-2" [style.cursor]="isDisabled ? 'not-allowed' : 'pointer'">
+        <input type="radio" [name]="'soru_' + soruId" [value]="soruSikki.id" [checked]="value === soruSikki.id"
+            (change)="onRadioChange(soruSikki.id)" [disabled]="isDisabled">
+        {{ soruSikki.answer }}
+    </label>
+    }
+</div>

@@ -1,0 +1,115 @@
+<section class="section">
+  <div class="container">
+
+    <h1 class="title is-2">Profil</h1>
+    <hr>
+
+    <div>
+      <h1 class="title is-4">Kullanıcı Bilgileri</h1>
+      @if (currentUser) {
+      <div class="box">
+        <div class="field">
+          <label class="label">İsim</label>
+          <div class="control">
+            <input class="input" type="text" [value]="currentUser.isim" readonly>
+          </div>
+        </div>
+        <div class="field">
+          <label class="label">Sicil Numarası</label>
+          <div class="control">
+            <input class="input" type="text" [value]="currentUser.sicil" readonly>
+          </div>
+        </div>
+        <div class="field">
+          <label class="label">Rol</label>
+          <div class="control">
+            <input class="input" type="text" [value]="currentUser.rol" readonly>
+          </div>
+        </div>
+      </div>
+      } @else {
+      <p>Kullanıcı bilgileri yükleniyor...</p>
+      }
+    </div>
+
+    <hr>
+
+    <div class="level is-mobile mb-4">
+      <div class="level-left">
+        <div class="level-item">
+          <h2 class="title is-4 mb-0">Katıldığım Anketler</h2>
+        </div>
+      </div>
+      <div class="level-right">
+        <div class="level-item">
+          <input class="input" type="text" placeholder="Ara..." style="min-width: 250px;" [(ngModel)]="searchQuery"
+            (ngModelChange)="onSearchChange($event)">
+        </div>
+        <div class="level-item">
+          <div class="select">
+            <select [(ngModel)]="sortOrder" (change)="onSortChange()">
+              <option value="participation-new-to-old">Katılım Tarihine Göre (Yeni → Eski)</option>
+              <option value="participation-old-to-new">Katılım Tarihine Göre (Eski → Yeni)</option>
+              <option value="created-new-to-old">Tarihe Göre (Yeni → Eski)</option>
+              <option value="created-old-to-new">Tarihe Göre (Eski → Yeni)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="box">
+      <div class="table-container">
+        <table class="table is-fullwidth is-striped is-hoverable">
+          <thead>
+            <tr>
+              <th>Anket Başlığı</th>
+              <th>Oluşturan</th>
+              <th>Katılım Tarihi</th>
+              <th>Güncellenme Tarihi</th>
+              <th>Durum</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (anket of filteredKatildigimAnketler; track anket.id) {
+            <tr (click)="goToAnketDetay(anket.id)" class="is-clickable">
+              <td>
+                <strong>{{ anket.title }}</strong>
+              </td>
+              <td>{{ anket.creator_name }}</td>
+              <td>{{ anket.participation_date | date: 'dd/MM/yyyy HH:mm' }}</td>
+              <td>{{ anket.participation_last_update | date: 'dd/MM/yyyy HH:mm' }}</td>
+              <td>
+                <span class="tag is-success">Tamamlandı</span>
+              </td>
+            </tr>
+            } @empty {
+            <tr>
+              <td colspan="5" class="has-text-centered has-text-grey">
+                @if (searchQuery.trim().length >= 2) {
+                <div class="py-4">
+                  <span class="icon is-large">
+                    <i class="fas fa-search fa-2x"></i>
+                  </span>
+                  <p class="mt-2">Arama sonucu bulunamadı.</p>
+                </div>
+                } @else {
+                <div class="py-4">
+                  <span class="icon is-large">
+                    <i class="fas fa-poll fa-2x"></i>
+                  </span>
+                  <p class="mt-2">Henüz katıldığınız bir anket bulunmuyor.</p>
+                </div>
+                }
+              </td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- Modal -->

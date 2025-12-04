@@ -1,0 +1,67 @@
+<section class="hero is-fullheight">
+  <div class="hero-body">
+    <div class="container">
+      <div class="columns is-centered">
+        <div class="column is-one-third">
+
+          <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="box">
+            <h1 class="title is-3 has-text-centered">Giriş Yap</h1>
+
+            <!-- Sicil Numarası -->
+            <div class="field">
+              <label class="label">Sicil Numarası</label>
+              <div class="control has-icons-left">
+                <input
+                  class="input"
+                  type="text"
+                  placeholder="Sicil numaranız"
+                  formControlName="sicil"
+                >
+                <span class="icon is-small is-left">
+                  <i class="fa-solid fa-id-badge"></i>
+                </span>
+              </div>
+            </div>
+
+            <!-- Şifre -->
+            <div class="field">
+              <label class="label">Şifre</label>
+              <div class="control has-icons-left">
+                <input
+                  class="input"
+                  type="password"
+                  placeholder="Şifreniz"
+                  formControlName="sifre"
+                >
+                <span class="icon is-small is-left">
+                  <i class="fa-solid fa-lock"></i>
+                </span>
+              </div>
+            </div>
+
+            <!-- Hata Mesajı -->
+            @if (errorMessage) {
+              <div class="notification is-danger is-light">
+                {{ errorMessage }}
+              </div>
+            }
+
+            <!-- Giriş Butonu -->
+            <div class="field">
+              <button
+                class="button is-primary is-fullwidth"
+                type="submit"
+                [disabled]="loginForm.invalid || loading"
+                [class.is-loading]="loading">
+                <i class="fa-solid fa-right-to-bracket mr-2"></i>
+                Giriş Yap
+              </button>
+            </div>
+
+          </form>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

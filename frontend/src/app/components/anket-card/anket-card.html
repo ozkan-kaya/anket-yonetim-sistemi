@@ -1,0 +1,50 @@
+<div class="card" (click)="onCardClick()" [class.is-clickable]="true">
+  <div class="card-content">
+    <div class="media">
+      <div class="media-content">
+        <p class="title is-5 mb-4">{{ anket.title }}</p>
+        <p class="subtitle is-6 mb-3">
+          <span class="icon is-small"><i class="fas fa-user"></i></span>
+          Yayınlayan: {{ anket.creator_name }}
+        </p>
+
+        @if (anket.departmanlar && anket.departmanlar.length > 0) {
+        <p class="subtitle is-6">
+          <span class="icon is-small"><i class="fas fa-building"></i></span>
+
+          @if ($any(anket.departmanlar).includes('Tüm Departmanlar') || (totalDepartments > 0 &&
+          anket.departmanlar.length === totalDepartments)) {
+          Tüm Departmanlar
+          } @else {
+          {{ anket.departmanlar.length > 1 ? 'Departmanlar' : 'Departman' }}: {{ getDepartmentNames() }}
+          }
+        </p>
+        }
+
+      </div>
+      <div class="media-right">
+        @if (anket.tamamlandi) {
+        <span class="tag is-success">Tamamlandı</span>
+        } @else if (isExpired) {
+        <span class="tag is-danger">Süresi Doldu</span>
+        } @else {
+        <span class="tag is-info">Aktif</span>
+        }
+      </div>
+    </div>
+
+    <div class="content">
+      <p class="description">{{ anket.aciklama }}</p>
+    </div>
+  </div>
+  <footer class="card-footer">
+    <div class="card-footer-item has-text-grey is-size-7">
+      <span class="icon is-small mr-1"><i class="far fa-calendar-alt"></i></span>
+      <span>Başlangıç: {{ anket.start_date | date:'dd/MM/yyyy' }} {{ anket.start_time | slice:0:5 }}</span>
+    </div>
+    <div class="card-footer-item has-text-grey is-size-7">
+      <span class="icon is-small mr-1"><i class="far fa-calendar-alt"></i></span>
+      <span>Bitiş: {{ anket.finish_date | date:'dd/MM/yyyy' }} {{ anket.finish_time | slice:0:5 }}</span>
+    </div>
+  </footer>
+</div>

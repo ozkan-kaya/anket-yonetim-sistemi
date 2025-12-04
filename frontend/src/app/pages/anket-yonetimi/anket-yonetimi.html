@@ -1,0 +1,388 @@
+<section class="section">
+  <div class="container">
+    <div class="level">
+      <div class="level-left">
+        <h1 class="title is-2">Anket Yönetimi</h1>
+      </div>
+      <div class="level-right">
+        <button class="button is-primary" (click)="openModal()">
+          <span class="icon"><i class="fas fa-plus"></i></span>
+          <span>Yeni Anket Ekle</span>
+        </button>
+      </div>
+    </div>
+
+    <hr>
+
+    <!-- Arama ve Sıralama -->
+    <div class="level is-mobile mb-4">
+      <div class="level-left">
+        <div class="level-item">
+          <h2 class="title is-4 mb-0">Anket Listesi</h2>
+        </div>
+      </div>
+      <div class="level-right">
+        <div class="level-item">
+          <input class="input" type="text" placeholder="Ara..." style="min-width: 250px;" [(ngModel)]="searchQuery"
+            (ngModelChange)="onSearchChange($event)">
+        </div>
+        <div class="level-item">
+          <div class="select">
+            <select [(ngModel)]="sortOrder" (change)="onSortChange()">
+              <option value="id-desc">ID'ye Göre (Azalan)</option>
+              <option value="id-asc">ID'ye Göre (Artan)</option>
+              <option value="new-to-old">Tarihe Göre (Yeni → Eski)</option>
+              <option value="old-to-new">Tarihe Göre (Eski → Yeni)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Liste -->
+    <div class="box">
+      <div class="table-container">
+        <table class="table is-fullwidth is-striped is-hoverable">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Başlık</th>
+              <th>Oluşturan</th>
+              <th>Başlangıç</th>
+              <th>Bitiş</th>
+              <th>Durum</th>
+              <th class="has-text-right">İşlemler</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (anket of filteredAnketler; track anket.id) {
+            <tr>
+              <td>{{ anket.id }}</td>
+              <td>
+                <strong>{{ anket.title }}</strong>
+                <br>
+                <small class="has-text-grey">{{ anket.aciklama | slice:0:50 }}{{ anket.aciklama.length > 50 ? '...' : ''
+                  }}</small>
+              </td>
+              <td>{{ anket.creator_name }}</td>
+              <td>{{ anket.start_date | date:'dd/MM/yyyy' }} {{ anket.start_time | slice:0:5 }}</td>
+              <td>{{ anket.finish_date | date:'dd/MM/yyyy' }} {{ anket.finish_time | slice:0:5 }}</td>
+              <td>
+                @if (anket.status) {
+                <span class="tag is-info">Aktif</span>
+                } @else {
+                <span class="tag is-danger">Süresi Doldu</span>
+                }
+              </td>
+              <td class="has-text-right">
+                <div class="buttons is-right">
+                  <button class="button is-small is-info is-light" (click)="openUpdateModal(anket)" title="Düzenle">
+                    <span class="icon"><i class="fas fa-edit"></i></span>
+                  </button>
+                  <button class="button is-small is-danger is-light" (click)="deleteAnket(anket.id, anket.title)"
+                    title="Sil">
+                    <span class="icon"><i class="fas fa-trash"></i></span>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            } @empty {
+            <tr>
+              <td colspan="7" class="has-text-centered has-text-grey">
+                @if (searchQuery.trim().length >= 2) {
+                <div class="py-4">
+                  <span class="icon is-large">
+                    <i class="fas fa-search fa-2x"></i>
+                  </span>
+                  <p class="mt-2">Arama sonucu bulunamadı.</p>
+                </div>
+                } @else {
+                <div class="py-4">
+                  <span class="icon is-large">
+                    <i class="fas fa-poll fa-2x"></i>
+                  </span>
+                  <p class="mt-2">Kayıtlı anket bulunamadı.</p>
+                </div>
+                }
+              </td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Modal -->
+<div class="modal" [class.is-active]="isModalActive">
+  <div class="modal-background" (click)="closeModal()"></div>
+  <div class="modal-card">
+    <header class="modal-card-head">
+      <p class="modal-card-title">{{ isEditMode ? 'Anket Düzenle' : 'Yeni Anket Ekle' }}</p>
+      <button class="delete is-large" aria-label="close" (click)="closeModal()"></button>
+    </header>
+    <section class="modal-card-body">
+      @if (isModalActive) {
+      @if (message) {
+      <div class="notification" [class.is-danger]="message.includes('hata')"
+        [class.is-success]="message.includes('başarıyla') || message.includes('yürütülüyor')">
+        {{ message }}
+      </div>
+      }
+
+      <form [formGroup]="anketForm">
+        <div class="field">
+          <label class="label">Başlık <span class="has-text-danger">*</span></label>
+          <div class="control">
+            <input class="input" type="text" formControlName="title" placeholder="Anket başlığı">
+          </div>
+          @if (titleControl?.invalid && (titleControl?.dirty || titleControl?.touched)) {
+          <p class="help is-danger">Başlık zorunludur ve en fazla 75 karakter olabilir.</p>
+          }
+        </div>
+
+        <div class="field">
+          <label class="label">Açıklama <span class="has-text-danger">*</span></label>
+          <div class="control">
+            <textarea class="textarea" formControlName="aciklama" placeholder="Anket açıklaması"></textarea>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label">Anket Görseli/Videosu/Dokümanı</label>
+          <div class="control">
+            <div class="file has-name is-fullwidth">
+              <label class="file-label">
+                <input class="file-input" type="file" (change)="onAnketFileSelected($event)"
+                  accept="image/*,video/*,.pdf,.doc,.docx">
+                <span class="file-cta">
+                  <span class="file-icon">
+                    <i class="fas fa-upload"></i>
+                  </span>
+                  <span class="file-label">
+                    Dosya seçin...
+                  </span>
+                </span>
+                <span class="file-name">
+                  {{ selectedAnketFileName || 'Dosya seçilmedi' }}
+                </span>
+              </label>
+            </div>
+            <p class="help">İsteğe bağlı. (Resim, Video, PDF, Word)</p>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label">Anket Tipi <span class="has-text-danger">*</span></label>
+          <div class="control">
+            <div class="select is-fullwidth">
+              <select formControlName="anket_tur">
+                <option [ngValue]="0">Normal</option>
+                <option [ngValue]="1">Video Eğitim</option>
+                <option [ngValue]="2">İç Eğitim</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="columns">
+          <div class="column">
+            <div class="field">
+              <label class="label">Başlangıç Tarihi <span class="has-text-danger">*</span></label>
+              <div class="control">
+                <input class="input" type="date" formControlName="start_date">
+              </div>
+            </div>
+          </div>
+          <div class="column">
+            <div class="field">
+              <label class="label">Başlangıç Saati <span class="has-text-danger">*</span></label>
+              <div class="control">
+                <input class="input" type="time" formControlName="start_time">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="columns">
+          <div class="column">
+            <div class="field">
+              <label class="label">Bitiş Tarihi <span class="has-text-danger">*</span></label>
+              <div class="control">
+                <input class="input" type="date" formControlName="finish_date">
+              </div>
+            </div>
+          </div>
+          <div class="column">
+            <div class="field">
+              <label class="label">Bitiş Saati <span class="has-text-danger">*</span></label>
+              <div class="control">
+                <input class="input" type="time" formControlName="finish_time">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label">Hedef Departmanlar <span class="has-text-danger">*</span></label>
+          <div class="control">
+            <div class="box p-0" style="height: 150px; overflow-y: auto;">
+              @for (dept of departmanlar; track dept.id) {
+              <a class="panel-block" [class.is-active]="isDepartmentSelected(dept.id)"
+                [style.background-color]="isDepartmentSelected(dept.id) ? '#3273dc' : 'transparent'"
+                [style.color]="isDepartmentSelected(dept.id) ? '#fff' : ''" (click)="toggleDepartment(dept.id)">
+                <span class="icon">
+                  <i class="far" [class.fa-check-square]="isDepartmentSelected(dept.id)"
+                    [class.fa-square]="!isDepartmentSelected(dept.id)"></i>
+                </span>
+                {{ dept.name }}
+              </a>
+              }
+            </div>
+            <div class="buttons mt-2 is-right">
+              <button type="button" class="button" (click)="selectAllDepartments()">Tümünü Seç</button>
+              <button type="button" class="button" (click)="deselectAllDepartments()">Seçimi Temizle</button>
+            </div>
+            @if (anketForm.get('departmanlar')?.invalid && (anketForm.get('departmanlar')?.dirty ||
+            anketForm.get('departmanlar')?.touched)) {
+            <p class="help is-danger">En az bir departman seçmelisiniz.</p>
+            }
+          </div>
+        </div>
+        <!-- Sorular Bölümü -->
+        <hr>
+        <h4 class="title is-5">Sorular</h4>
+
+        <div class="questions-list">
+          @for (question of questions; track $index; let i = $index) {
+          <div class="box question-box">
+            <div class="is-flex is-justify-content-space-between is-align-items-center mb-3">
+              <div>
+                <span class="tag is-info is-light">
+                  @switch (question.soru_type) {
+                  @case (0) { Çoktan Seçmeli }
+                  @case (1) { Tekil Seçim }
+                  @case (2) { Doğrusal Ölçek (1-5) }
+                  @case (3) { Açık Uçlu }
+                  }
+                </span>
+                @if (question.is_imperative) {
+                <span class="tag is-danger is-light ml-2">Zorunlu</span>
+                }
+              </div>
+              <button type="button" class="delete" (click)="removeQuestion(i)"></button>
+            </div>
+
+            <div class="field">
+              <label class="label">Soru Metni</label>
+              <div class="control">
+                <input class="input" type="text" [(ngModel)]="question.title" [ngModelOptions]="{standalone: true}"
+                  placeholder="Sorunuzu buraya yazın">
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="checkbox is-flex is-align-items-center">
+                <input type="checkbox" [(ngModel)]="question.is_imperative" [ngModelOptions]="{standalone: true}"
+                  style="width: 16px; height: 16px;">
+                <strong class="ml-2">Zorunlu Soru</strong>
+              </label>
+              <p class="help">Bu seçenek işaretlenirse kullanıcı bu soruyu cevaplamadan anketi gönderemez.</p>
+            </div>
+
+            <div class="field">
+              <label class="label">Soru Görseli/Videosu/Dokümanı</label>
+              <div class="control">
+                <div class="file has-name is-small is-fullwidth">
+                  <label class="file-label">
+                    <input class="file-input" type="file" (change)="onQuestionFileSelected($event, i)"
+                      accept="image/*,video/*,.pdf,.doc,.docx">
+                    <span class="file-cta">
+                      <span class="file-icon">
+                        <i class="fas fa-upload"></i>
+                      </span>
+                      <span class="file-label">
+                        Dosya Seç...
+                      </span>
+                    </span>
+                    <span class="file-name">
+                      {{ question.selectedFileName || 'Dosya seçilmedi' }}
+                    </span>
+                  </label>
+                </div>
+                <p class="help">İsteğe bağlı. (Resim, Video, PDF, Word)</p>
+              </div>
+            </div>
+
+            <!-- Seçenekler (Checkbox/Radio) -->
+            @if (question.soru_type === 0 || question.soru_type === 1) {
+            <div class="pl-4 mt-3" style="border-left: 2px solid #dbdbdb;">
+              <label class="label is-small">Seçenekler</label>
+              @for (option of question.soruSecenekleri; track $index; let j = $index) {
+              <div class="field has-addons mb-2 option-row">
+                <div class="control">
+                  <a class="button is-static">
+                    @if (question.soru_type === 0) { <i class="far fa-square"></i> }
+                    @else { <i class="far fa-circle"></i> }
+                  </a>
+                </div>
+                <div class="control is-expanded">
+                  <input class="input" type="text" [(ngModel)]="option.answer" [ngModelOptions]="{standalone: true}"
+                    placeholder="Seçenek metni">
+                </div>
+                <div class="control">
+                  <button type="button" class="button is-danger is-outlined" (click)="removeOption(i, j)">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
+              </div>
+              }
+              <button type="button" class="button is-text mt-1" style="text-decoration: none;" (click)="addOption(i)">
+                <span class="icon"><i class="fas fa-plus"></i></span>
+                <span>Seçenek Ekle</span>
+              </button>
+            </div>
+            }
+
+            <!-- Diğer Tipler İçin Bilgi -->
+            @if (question.soru_type === 2) {
+            <p class="help is-info mt-2"><i class="fas fa-info-circle"></i> Kullanıcı 1 ile 5 arasında bir puan
+              verecek.</p>
+            }
+            @if (question.soru_type === 3) {
+            <p class="help is-info mt-2"><i class="fas fa-info-circle"></i> Kullanıcı metin olarak cevap verecek.</p>
+            }
+          </div>
+          }
+        </div>
+
+        <div class="field has-addons mt-5">
+          <div class="control is-expanded">
+            <div class="select is-fullwidth">
+              <select [(ngModel)]="selectedQuestionType" [ngModelOptions]="{standalone: true}">
+                @for (type of questionTypes; track type.value) {
+                <option [ngValue]="type.value">{{ type.label }}</option>
+                }
+              </select>
+            </div>
+          </div>
+          <div class="control">
+            <button type="button" class="button" (click)="addQuestion()">
+              <span class="icon"><i class="fas fa-plus"></i></span>
+              <span>Soru Ekle</span>
+            </button>
+          </div>
+        </div>
+      </form>
+      }
+    </section>
+    <footer class="modal-card-foot" style="justify-content: flex-end">
+      <button class="button mr-3" (click)="closeModal()">İptal</button>
+      <button class="button is-success" (click)="onSubmit()" [class.is-loading]="uploading"
+        [disabled]="anketForm.invalid || uploading || (isEditMode && !isFormDirtyOrFileSelected)">
+        {{ isEditMode ? 'Güncelle' : 'Kaydet' }}
+      </button>
+    </footer>
+  </div>
+</div>

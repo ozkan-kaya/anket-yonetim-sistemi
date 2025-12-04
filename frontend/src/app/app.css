@@ -1,0 +1,20 @@
+/* Navbar yüksekliği kadar üstten padding*/
+.content-wrapper {
+  padding-top: 3.25rem;
+}
+
+/* Footer'ın altta kalması için temel iskelet */
+html, body {
+  height: 100%;
+}
+.layout {
+	min-height: 100vh;
+	display: flex;
+	flex-direction: column;
+}
+.content-wrapper {
+	flex: 1 0 auto;
+}
+app-footer {
+	margin-top: auto;
+}

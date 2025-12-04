@@ -1,0 +1,124 @@
+<nav class="navbar px-4 is-fixed-top" role="navigation" aria-label="main navigation">
+  <div class="navbar-brand">
+    <a class="navbar-item" [routerLink]="''" (click)="closeAllMenus()">
+      <span class="icon">
+        <i class="fas fa-poll fa-lg"></i>
+      </span>
+      <h1 class="title is-4">Anketler</h1>
+    </a>
+
+    <a role="button" class="navbar-burger" [class.is-active]="isMenuOpen" (click)="toggleMenu()" aria-label="menu"
+      aria-expanded="false" data-target="navbarBasicExample">
+      <span aria-hidden="true"></span>
+      <span aria-hidden="true"></span>
+      <span aria-hidden="true"></span>
+    </a>
+  </div>
+
+  <div id="navbarBasicExample" class="navbar-menu" [class.is-active]="isMenuOpen">
+    <div class="navbar-start"></div>
+
+    <div class="navbar-end">
+      <div class="navbar-item">
+        <div class="dropdown" [class.is-active]="isThemeMenuActive">
+          <div class="dropdown-trigger">
+            <button class="button" aria-haspopup="true" aria-controls="theme-dropdown-menu" (click)="toggleThemeMenu()"
+              title="Temayı Değiştir">
+              <span class="icon is-small">
+                <i class="fas" [class.fa-sun]="themePreference === 'light'" [class.fa-moon]="themePreference === 'dark'"
+                  [class.fa-desktop]="themePreference === 'system'">
+                </i>
+              </span>
+            </button>
+          </div>
+
+          <div class="dropdown-menu" id="theme-dropdown" role="menu">
+            <div class="dropdown-content">
+              <a class="dropdown-item" [class.is-active]="themePreference === 'light'" (click)="setPreference('light')">
+                <span class="icon-text">
+                  <span class="icon"><i class="fas fa-sun"></i></span>
+                  <span>Light</span>
+                </span>
+              </a>
+              <a class="dropdown-item" [class.is-active]="themePreference === 'dark'" (click)="setPreference('dark')">
+                <span class="icon-text">
+                  <span class="icon"><i class="fas fa-moon"></i></span>
+                  <span>Dark</span>
+                </span>
+              </a>
+              <a class="dropdown-item" [class.is-active]="themePreference === 'system'"
+                (click)="setPreference('system')">
+                <span class="icon-text">
+                  <span class="icon"><i class="fas fa-desktop"></i></span>
+                  <span>System</span>
+                </span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      @if (authService.user$ | async; as user) {
+      <div class="navbar-item">
+        <div class="dropdown" [class.is-active]="isUserDropdownActive" [class.is-right]="true">
+          <div class="dropdown-trigger">
+            <button class="button" aria-haspopup="true" aria-controls="user-dropdown" (click)="toggleUserDropdown()">
+              <span class="icon is-small is-left">
+                <i class="fas fa-user"></i>
+              </span>
+              <span>{{ user.isim }}</span>
+              <span class="icon is-small is-right">
+                <i class="fas fa-angle-down"></i>
+              </span>
+            </button>
+          </div>
+          <div class="dropdown-menu" id="user-dropdown" role="menu">
+            <div class="dropdown-content">
+              <a class="dropdown-item" [routerLink]="'/profil'" routerLinkActive="is-active" (click)="closeAllMenus()">
+                <span class="icon-text">
+                  <span class="icon"><i class="fas fa-user-circle"></i></span>
+                  <span>Profil</span>
+                </span>
+              </a>
+              @if (authService.canViewReports()) {
+              <a class="dropdown-item" [routerLink]="'/raporlar'" routerLinkActive="is-active"
+                (click)="closeAllMenus()">
+                <span class="icon-text">
+                  <span class="icon"><i class="fas fa-chart-bar"></i></span>
+                  <span>Raporlar</span>
+                </span>
+              </a>
+              }
+              @if (authService.canManageSurveys()) {
+              <a class="dropdown-item" [routerLink]="'/anket-yonetimi'" routerLinkActive="is-active"
+                (click)="closeAllMenus()">
+                <span class="icon-text">
+                  <span class="icon"><i class="fas fa-tasks"></i></span>
+                  <span>Anket Yönetimi</span>
+                </span>
+              </a>
+              }
+              <hr class="dropdown-divider">
+              <a class="dropdown-item" (click)="logout()">
+                <span class="icon-text">
+                  <span class="icon"><i class="fas fa-sign-out-alt"></i></span>
+                  <span>Çıkış Yap</span>
+                </span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+      } @else {
+      <div class="navbar-item">
+        <div class="buttons">
+          <a class="button is-primary" [routerLink]="'/login'" (click)="closeAllMenus()">
+            <strong>Giriş Yap</strong>
+          </a>
+        </div>
+      </div>
+      }
+
+    </div>
+  </div>
+</nav>

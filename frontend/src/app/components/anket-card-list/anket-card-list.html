@@ -1,0 +1,135 @@
+<div class="mb-5">
+  <div class="level is-mobile mb-3">
+    <div class="level-left">
+      <div class="level-item">
+        <h3 class="title is-43s mb-0">Anket Listesi</h3>
+      </div>
+    </div>
+
+    <div class="level-right">
+      <!-- Arama -->
+      <div class="level-item">
+        <input class="input" type="text" placeholder="Ara..." style="min-width: 250px;" [ngModel]="searchText()"
+          (ngModelChange)="searchText.set($event)" />
+      </div>
+
+      <!-- Sıralama -->
+      <div class="level-item">
+        <div class="select">
+          <select #sortSelect (change)="
+              sortField.set(sortSelect.value.split('-')[0]);
+              sortDir.set(sortSelect.value.split('-')[1])
+            ">
+            <option value="tarih-desc">Tarih: Yeni → Eski</option>
+            <option value="tarih-asc">Tarih: Eski → Yeni</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Filtreler Butonu -->
+      <div class="level-item">
+        <button class="button" (click)="toggleFilters()">
+          <span class="icon">
+            <i class="fas fa-filter"></i>
+          </span>
+          <span>Filtreler</span>
+          <span class="icon">
+            <i class="fas" [class.fa-chevron-right]="!showFilters()" [class.fa-chevron-down]="showFilters()"></i>
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filtreler Bölümü (Toggle) -->
+  @if (showFilters()) {
+  <div class="box">
+    <div class="is-flex is-justify-content-space-between is-align-items-center mb-3">
+      <h5 class="title is-4 mb-0">Filtreler</h5>
+      <button class="button" (click)="clearFilters()">
+        <span>Filtreleri Temizle</span>
+        <span class="icon">
+          <i class="fas fa-times-circle"></i>
+        </span>
+      </button>
+    </div>
+
+    <div class="columns is-multiline">
+      <div class="column is-6-tablet is-4-desktop is-3-widescreen">
+        <label class="label">Departman</label>
+        <div class="select is-fullwidth">
+          <select [ngModel]="selectedDepartment()" (ngModelChange)="selectedDepartment.set($event)">
+            <option [ngValue]="null">Tümü</option>
+            @for (dept of departmanlar(); track dept.id) {
+            <option [value]="dept.id">{{ dept.name }}</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      <div class="column is-12-tablet is-8-desktop is-9-widescreen">
+        <label class="label">Tarih Aralığı</label>
+        <div class="field has-addons">
+          <div class="control is-expanded">
+            <input class="input is-fullwidth" type="date" [ngModel]="tarihStart()"
+              (ngModelChange)="tarihStart.set($event)" />
+          </div>
+          <div class="control">
+            <span class="button is-static">-</span>
+          </div>
+          <div class="control is-expanded">
+            <input class="input is-fullwidth" type="date" [ngModel]="tarihEnd()"
+              (ngModelChange)="tarihEnd.set($event)" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  }
+</div>
+
+<!-- Liste -->
+<div class="columns is-multiline">
+  @for (anket of paginatedAnketler(); track anket.id) {
+  <div class="column is-6">
+    <app-anket-card [anket]="anket" [totalDepartments]="departmanlar().length"
+      (cardClick)="onAnketClick($event)"></app-anket-card>
+  </div>
+  } @empty {
+  <div class="column is-12">
+    <div class="notification is-warning is-light has-text-centered">
+      Aradığınız kriterlere uygun anket bulunamadı.
+    </div>
+  </div>
+  }
+</div>
+
+<!-- Pagination -->
+@if (filteredAnketler().length > 0) {
+<nav class="pagination is-centered mt-5" role="navigation" aria-label="pagination">
+
+  <button class="pagination-previous" [disabled]="currentPage() === 1" (click)="prevPage()">
+    <span class="icon">
+      <i class="fas fa-chevron-left"></i>
+    </span>
+  </button>
+
+  <button class="pagination-next" [disabled]="currentPage() === totalPages()" (click)="nextPage()">
+    <span class="icon">
+      <i class="fas fa-chevron-right"></i>
+    </span>
+  </button>
+
+  <ul class="pagination-list">
+    @for (page of pages(); let idx = $index; track idx) {
+    <li>
+      <button class="pagination-link" [class.is-current]="currentPage() === (idx + 1)"
+        (click)="currentPage.set(idx + 1)">
+        {{ idx + 1 }}
+      </button>
+    </li>
+    }
+  </ul>
+
+</nav>
+}
