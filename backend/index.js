@@ -133,46 +133,6 @@ app.post('/auth/login', async (req, res) => {
   }
 });
 
-// Profil
-app.get('/api/auth/profil', authenticateToken, async (req, res) => {
-  try {
-    const userResult = await pool.query(
-      'SELECT id, sicil, user_name, rol FROM portal_user WHERE id = $1',
-      [req.user.id]
-    );
-
-    if (userResult.rows.length === 0) {
-      return res.status(404).json({ message: 'Kullanıcı bulunamadı.' });
-    }
-
-    const user = userResult.rows[0];
-
-    // Kullanıcının yetkilerini gk_yetkilendirme tablosundan çek
-    const yetkilerResult = await pool.query(
-      `SELECT array_agg(gyl.rol_adi) as yetkiler
-       FROM gk_yetkilendirme gy
-       JOIN gk_yetki_list gyl ON gy.rol_id = gyl.id
-       WHERE gy.user_id = $1`,
-      [user.id]
-    );
-
-    const yetkiler = yetkilerResult.rows[0]?.yetkiler || [];
-    const yetki = yetkiler.length > 0 ? yetkiler[0] : 'kullanici';
-
-    res.json({
-      id: user.id,
-      sicil: user.sicil,
-      isim: user.user_name,
-      rol: user.rol,  // portal_user'daki rol
-      yetki: yetki,
-      yetkiler: yetkiler
-    });
-  } catch (err) {
-    console.error('Profil bilgisi alınırken hata:', err);
-    res.status(500).json({ message: 'Sunucu hatası' });
-  }
-});
-
 // Departmanlar
 app.get('/api/departmanlar', authenticateToken, async (req, res) => {
   try {

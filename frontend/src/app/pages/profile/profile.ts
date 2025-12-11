@@ -38,16 +38,9 @@ export class Profile implements OnInit, OnDestroy {
   ) { }
 
   ngOnInit(): void {
-    // Güncel profil bilgisini DB'den çek
-    this.authService.getProfil().pipe(takeUntil(this.destroy$)).subscribe({
-      next: (user) => {
-        this.currentUser = user;
-      },
-      error: (err) => {
-        console.error('Profil bilgisi alınamadı:', err);
-        // Hata durumunda localStorage'dan al
-        this.authService.user$.pipe(takeUntil(this.destroy$)).subscribe(u => this.currentUser = u);
-      }
+    // Mevcut kullanıcı bilgisini localStorage'dan al
+    this.authService.user$.pipe(takeUntil(this.destroy$)).subscribe(user => {
+      this.currentUser = user;
     });
 
     this.loadKatildigimAnketler();

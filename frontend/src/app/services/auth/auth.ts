@@ -53,10 +53,6 @@ export class AuthService {
     return !!this.userSubject.value;
   }
 
-  getProfil(): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/profil`);
-  }
-
   getUserYetkiler(): string[] {
     const user = this.userSubject.value;
     return user?.yetkiler || [];
