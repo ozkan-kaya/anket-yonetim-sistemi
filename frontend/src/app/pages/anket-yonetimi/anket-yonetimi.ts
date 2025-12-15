@@ -2,16 +2,17 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { AnketService } from '../../services/anket-api/anket';
 import { AuthService } from '../../services/auth/auth';
-import { DatePipe, SlicePipe } from '@angular/common';
+import { CommonModule, DatePipe, SlicePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged, map } from 'rxjs/operators';
 import { Anket, AnketCreateDto, AnketUpdateDto, Departman } from '../../interfaces/anket-interface';
+import { getAnketStatusFromObject, getAnketStatusLabel, getAnketStatusClass, isStartDateInvalid, AnketStatus } from '../../utils/date-utils';
 
 @Component({
   selector: 'app-anket-yonetimi',
   standalone: true,
-  imports: [ReactiveFormsModule, DatePipe, FormsModule, SlicePipe],
+  imports: [ReactiveFormsModule, DatePipe, FormsModule, SlicePipe, CommonModule],
   templateUrl: './anket-yonetimi.html',
   styleUrl: './anket-yonetimi.css'
 })
@@ -40,7 +41,7 @@ export class AnketYonetimi implements OnInit, OnDestroy {
   questionTypes = [
     { value: 0, label: 'Çoktan Seçmeli' },
     { value: 1, label: 'Tekil Seçim' },
-    { value: 2, label: 'Doğrusal Ölçek (1-5)' },
+    { value: 2, label: 'Doğrusal Ölçek' },
     { value: 3, label: 'Açık Uçlu (Metin)' }
   ];
   selectedQuestionType: number = 0;
@@ -79,6 +80,28 @@ export class AnketYonetimi implements OnInit, OnDestroy {
       this.questions.some(q => q.selectedFile);
   }
 
+  get isScaleQuestionsValid(): boolean {
+    // Doğrusal ölçek sorularını kontrol et
+    for (const question of this.questions) {
+      if (question.soru_type === 2) {
+        const start = question.scaleStart;
+        const end = question.scaleEnd;
+
+        // Başlangıç veya bitiş boş ise geçersiz
+        if (start === null || start === undefined || start === '' ||
+          end === null || end === undefined || end === '') {
+          return false;
+        }
+
+        // Başlangıç bitiş'ten büyük ise geçersiz
+        if (Number(start) > Number(end)) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -100,6 +123,33 @@ export class AnketYonetimi implements OnInit, OnDestroy {
 
   get titleControl() {
     return this.anketForm.get('title');
+  }
+
+  // Durum gösterimi için yardımcı metodlar
+  getAnketStatus(anket: Anket): AnketStatus {
+    return getAnketStatusFromObject(anket);
+  }
+
+  getStatusLabel(anket: Anket): string {
+    return getAnketStatusLabel(this.getAnketStatus(anket));
+  }
+
+  getStatusClass(anket: Anket): string {
+    return getAnketStatusClass(this.getAnketStatus(anket));
+  }
+
+  // Form tarih validasyonu
+  get isDateRangeInvalid(): boolean {
+    const startDate = this.anketForm.get('start_date')?.value;
+    const startTime = this.anketForm.get('start_time')?.value;
+    const finishDate = this.anketForm.get('finish_date')?.value;
+    const finishTime = this.anketForm.get('finish_time')?.value;
+
+    if (!startDate || !startTime || !finishDate || !finishTime) {
+      return false; // Henüz tüm alanlar doldurulmadı
+    }
+
+    return isStartDateInvalid(startDate, startTime, finishDate, finishTime);
   }
 
   ngOnInit(): void {
@@ -219,7 +269,36 @@ export class AnketYonetimi implements OnInit, OnDestroy {
       newQuestion.soruSecenekleri.push({ answer: '' });
     }
 
+    // Doğrusal ölçek için varsayılan aralık ve seçenekler
+    if (this.selectedQuestionType === 2) {
+      newQuestion.scaleStart = 1;
+      newQuestion.scaleEnd = 5;
+      // Varsayılan 1-5 seçeneklerini oluştur
+      for (let i = 1; i <= 5; i++) {
+        newQuestion.soruSecenekleri.push({ answer: i.toString() });
+      }
+    }
+
     this.questions.push(newQuestion);
+  }
+
+  generateScaleOptions(questionIndex: number): void {
+    const question = this.questions[questionIndex];
+    if (question.soru_type !== 2) return;
+
+    const start = parseInt(question.scaleStart, 10) || 0;
+    const end = parseInt(question.scaleEnd, 10) || 0;
+
+    // Geçersiz aralık kontrolü
+    if (start > end || start < 0 || end < 0) return;
+
+    // Mevcut seçenekleri temizle (yeni olanları koru, sadece answer değerlerini güncelle)
+    question.soruSecenekleri = [];
+
+    // Aralık için yeni seçenekler oluştur
+    for (let i = start; i <= end; i++) {
+      question.soruSecenekleri.push({ answer: i.toString() });
+    }
   }
 
   removeQuestion(index: number): void {
@@ -291,6 +370,22 @@ export class AnketYonetimi implements OnInit, OnDestroy {
           if (q.dokuman_url) {
             const parts = q.dokuman_url.split(/[/\\]/);
             q.selectedFileName = parts[parts.length - 1];
+          }
+
+          // Doğrusal ölçek için scaleStart ve scaleEnd değerlerini hesapla
+          if (q.soru_type === 2 && q.soruSecenekleri && q.soruSecenekleri.length > 0) {
+            const values = q.soruSecenekleri
+              .map((s: any) => parseInt(s.answer, 10))
+              .filter((v: number) => !isNaN(v))
+              .sort((a: number, b: number) => a - b);
+
+            if (values.length > 0) {
+              q.scaleStart = values[0];
+              q.scaleEnd = values[values.length - 1];
+            } else {
+              q.scaleStart = 1;
+              q.scaleEnd = 5;
+            }
           }
         });
 

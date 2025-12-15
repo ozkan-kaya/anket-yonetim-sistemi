@@ -23,12 +23,11 @@
 
       </div>
       <div class="media-right">
+        <span class="tag mr-2">{{ getAnketTur() }}</span>
         @if (anket.tamamlandi) {
         <span class="tag is-success">Tamamlandı</span>
-        } @else if (isExpired) {
-        <span class="tag is-danger">Süresi Doldu</span>
         } @else {
-        <span class="tag is-info">Aktif</span>
+        <span class="tag" [ngClass]="getStatusClass()">{{ getStatusLabel() }}</span>
         }
       </div>
     </div>
@@ -43,7 +42,7 @@
       <span>Başlangıç: {{ anket.start_date | date:'dd/MM/yyyy' }} {{ anket.start_time | slice:0:5 }}</span>
     </div>
     <div class="card-footer-item has-text-grey is-size-7">
-      <span class="icon is-small mr-1"><i class="far fa-calendar-alt"></i></span>
+      <span class="icon mr-1"><i class="far fa-calendar-alt"></i></span>
       <span>Bitiş: {{ anket.finish_date | date:'dd/MM/yyyy' }} {{ anket.finish_time | slice:0:5 }}</span>
     </div>
   </footer>

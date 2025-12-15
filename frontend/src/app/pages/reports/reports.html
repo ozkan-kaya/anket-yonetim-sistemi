@@ -96,11 +96,7 @@
               <td>{{ anket.start_date | date: 'dd/MM/yyyy' }} {{ anket.start_time | slice:0:5 }}</td>
               <td>{{ anket.finish_date | date: 'dd/MM/yyyy' }} {{ anket.finish_time | slice:0:5 }}</td>
               <td>
-                @if (anket.is_active) {
-                <span class="tag is-info">Aktif</span>
-                } @else {
-                <span class="tag is-danger">Süresi Doldu</span>
-                }
+                <span class="tag" [ngClass]="getStatusClass(anket)">{{ getStatusLabel(anket) }}</span>
               </td>
               <td class="has-text-centered">
                 <button class="button is-small is-link" (click)="openModal(anket.id, anket.title)">

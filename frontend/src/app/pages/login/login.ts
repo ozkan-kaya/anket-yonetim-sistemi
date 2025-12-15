@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth/auth';
@@ -13,7 +13,7 @@ import { AuthService } from '../../services/auth/auth';
 
 // Kullanıcıların sisteme giriş yapabilmesi için sicil ve şifrelerini girdikleri form sayfasıdır.
 
-export class Login {
+export class Login implements OnInit {
   loginForm: FormGroup;
   errorMessage: string | null = null;
   loading = false;
@@ -27,6 +27,10 @@ export class Login {
       sicil: ['', Validators.required],
       sifre: ['', Validators.required]
     });
+  }
+
+  ngOnInit(): void {
+    window.scrollTo(0, 0);
   }
 
   onSubmit(): void {

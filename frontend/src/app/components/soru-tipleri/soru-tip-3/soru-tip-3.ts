@@ -3,49 +3,49 @@ import { CommonModule } from '@angular/common';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormsModule } from '@angular/forms';
 
 @Component({
-  selector: 'app-soru-tip-3',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
-  templateUrl: './soru-tip-3.html',
-  styleUrls: ['./soru-tip-3.css'],
-  providers: [
-    {
-      provide: NG_VALUE_ACCESSOR,
-      useExisting: forwardRef(() => SoruTip3),
-      multi: true
-    }
-  ]
+    selector: 'app-soru-tip-3',
+    standalone: true,
+    imports: [CommonModule, FormsModule],
+    templateUrl: './soru-tip-3.html',
+    styleUrls: ['./soru-tip-3.css'],
+    providers: [
+        {
+            provide: NG_VALUE_ACCESSOR,
+            useExisting: forwardRef(() => SoruTip3),
+            multi: true
+        }
+    ]
 })
 export class SoruTip3 implements ControlValueAccessor {
-  @Input() soruId!: number;
+    @Input() soruBasligi: string = '';
+    @Input() soruIndex: number = 0;
+    @Input() isImperative: boolean = false;
 
-  // Varsayilan 1-5 araligi
-  scale = [1, 2, 3, 4, 5];
-  value: number | null = null;
-  isDisabled = false;
+    value: string = '';
+    isDisabled = false;
 
-  onChangeFn = (value: any) => { };
-  onTouchedFn = () => { };
+    onChangeFn = (value: any) => { };
+    onTouchedFn = () => { };
 
-  onRadioChange(val: number): void {
-    this.value = val;
-    this.onChangeFn(this.value);
-    this.onTouchedFn();
-  }
+    onInput(event: Event): void {
+        const val = (event.target as HTMLTextAreaElement).value;
+        this.value = val;
+        this.onChangeFn(this.value);
+    }
 
-  writeValue(obj: any): void {
-    this.value = obj;
-  }
+    writeValue(obj: any): void {
+        this.value = obj || '';
+    }
 
-  registerOnChange(fn: any): void {
-    this.onChangeFn = fn;
-  }
+    registerOnChange(fn: any): void {
+        this.onChangeFn = fn;
+    }
 
-  registerOnTouched(fn: any): void {
-    this.onTouchedFn = fn;
-  }
+    registerOnTouched(fn: any): void {
+        this.onTouchedFn = fn;
+    }
 
-  setDisabledState?(isDisabled: boolean): void {
-    this.isDisabled = isDisabled;
-  }
+    setDisabledState?(isDisabled: boolean): void {
+        this.isDisabled = isDisabled;
+    }
 }

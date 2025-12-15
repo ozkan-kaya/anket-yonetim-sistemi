@@ -132,7 +132,6 @@ create table portal_anket_birim
         primary key,
     department_id integer,
     anket_id      integer,
-    description   text,
     is_delete     boolean default false
 );
 

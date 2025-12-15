@@ -7,10 +7,10 @@
     </label>
     <div class="control" style="width: 100%;">
         @for (soruSikki of soruSecenekleri; track soruSikki.id) {
-        <label class="radio is-block mb-2 p-2" style="width: 100%;"
+        <label class="checkbox is-block mb-2 p-2" style="width: 100%;"
             [style.cursor]="isDisabled ? 'not-allowed' : 'pointer'">
-            <input type="radio" [name]="'soru_' + soruId" [value]="soruSikki.id" [checked]="value === soruSikki.id"
-                (change)="onRadioChange(soruSikki.id)" [disabled]="isDisabled">
+            <input type="checkbox" [value]="soruSikki.id" [checked]="isChecked(soruSikki.id)"
+                (change)="onChange($event, soruSikki.id)" [disabled]="isDisabled">
             {{ soruSikki.answer }}
         </label>
         }

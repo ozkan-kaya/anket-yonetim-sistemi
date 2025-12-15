@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { DuyuruYonetimi } from './duyuru-yonetimi';
+import { AnketYonetimi } from './anket-yonetimi';
 
-describe('DuyuruYonetimi', () => {
-  let component: DuyuruYonetimi;
-  let fixture: ComponentFixture<DuyuruYonetimi>;
+describe('AnketYonetimi', () => {
+  let component: AnketYonetimi;
+  let fixture: ComponentFixture<AnketYonetimi>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [DuyuruYonetimi]
+      imports: [AnketYonetimi]
     })
-    .compileComponents();
+      .compileComponents();
 
-    fixture = TestBed.createComponent(DuyuruYonetimi);
+    fixture = TestBed.createComponent(AnketYonetimi);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

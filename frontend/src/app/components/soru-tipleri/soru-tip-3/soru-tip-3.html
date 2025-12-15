@@ -1,18 +1,12 @@
-<div class="control">
-    <div class="is-flex is-align-items-center is-justify-content-space-between" style="max-width: 500px;">
-        @for (val of scale; track val) {
-        <div class="has-text-centered">
-            <label class="radio" [style.cursor]="isDisabled ? 'not-allowed' : 'pointer'">
-                <input type="radio" [name]="'scale_' + soruId" [value]="val" [checked]="value === val"
-                    (change)="onRadioChange(val)" [disabled]="isDisabled">
-                <br>
-                <span class="is-size-7">{{ val }}</span>
-            </label>
-        </div>
+<div class="field">
+    <label class="label is-size-5">
+        {{ soruIndex }}. {{ soruBasligi }}
+        @if (isImperative) {
+        <span class="has-text-danger">*</span>
         }
-    </div>
-    <div class="is-flex is-justify-content-space-between mt-2" style="max-width: 500px;">
-        <span class="is-size-7 has-text-grey">En Düşük (1)</span>
-        <span class="is-size-7 has-text-grey">En Yüksek (5)</span>
+    </label>
+    <div class="control" style="width: 100%;">
+        <textarea class="textarea" style="width: 100%;" [value]="value" (input)="onInput($event)" (blur)="onTouchedFn()"
+            [disabled]="isDisabled" placeholder="Cevabınızı buraya yazın..."></textarea>
     </div>
 </div>

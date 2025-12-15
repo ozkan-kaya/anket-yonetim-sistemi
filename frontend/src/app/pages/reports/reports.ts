@@ -7,6 +7,7 @@ import { FormsModule } from '@angular/forms';
 import { Anket, Departman } from '../../interfaces/anket-interface';
 import { Chart, registerables } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
+import { getAnketStatusFromObject, getAnketStatusLabel, getAnketStatusClass, AnketStatus, isAnketActive } from '../../utils/date-utils';
 
 Chart.register(...registerables, ChartDataLabels);
 
@@ -109,6 +110,19 @@ export class Reports implements OnInit, OnDestroy {
       });
   }
 
+  // Durum gösterimi için yardımcı metodlar
+  getAnketStatus(anket: Anket): AnketStatus {
+    return getAnketStatusFromObject(anket);
+  }
+
+  getStatusLabel(anket: Anket): string {
+    return getAnketStatusLabel(this.getAnketStatus(anket));
+  }
+
+  getStatusClass(anket: Anket): string {
+    return getAnketStatusClass(this.getAnketStatus(anket));
+  }
+
   loadAnketler(): void {
     this.message = '';
     this.anketService.getAnketler()
@@ -128,7 +142,7 @@ export class Reports implements OnInit, OnDestroy {
 
   calculateDashboardStats(): void {
     this.totalAnketCount = this.anketListesi.length;
-    this.totalActiveAnketCount = this.anketListesi.filter(a => a.is_active).length;
+    this.totalActiveAnketCount = this.anketListesi.filter(a => isAnketActive(a)).length;
 
     const deptCounts = new Map<string, number>();
 
@@ -168,10 +182,10 @@ export class Reports implements OnInit, OnDestroy {
       }
     });
 
-    // Aktif anket dağılımı
+    // Aktif anket dağılımı (date-utils isAnketActive kullanarak)
     const activeDeptCounts = new Map<string, number>();
 
-    this.anketListesi.filter(a => a.status).forEach(anket => {
+    this.anketListesi.filter(a => isAnketActive(a)).forEach(anket => {
       if (anket.departmanlar && Array.isArray(anket.departmanlar) && anket.departmanlar.length > 0) {
         anket.departmanlar.forEach(dept => {
           let deptName = '';

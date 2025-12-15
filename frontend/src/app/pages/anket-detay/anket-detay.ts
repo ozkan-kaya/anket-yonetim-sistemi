@@ -5,15 +5,16 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormArray } fr
 import { AnketService } from '../../services/anket-api/anket';
 import { Anket, Soru } from '../../interfaces/anket-interface';
 import { Subject, takeUntil } from 'rxjs';
+import { SoruTip0 } from '../../components/soru-tipleri/soru-tip-0/soru-tip-0';
 import { SoruTip1 } from '../../components/soru-tipleri/soru-tip-1/soru-tip-1';
 import { SoruTip2 } from '../../components/soru-tipleri/soru-tip-2/soru-tip-2';
 import { SoruTip3 } from '../../components/soru-tipleri/soru-tip-3/soru-tip-3';
-import { SoruTip4 } from '../../components/soru-tipleri/soru-tip-4/soru-tip-4';
+import { AnketStatus, getAnketStatusFromObject } from '../../utils/date-utils';
 
 @Component({
     selector: 'app-anket-detay',
     standalone: true,
-    imports: [CommonModule, ReactiveFormsModule, SoruTip1, SoruTip2, SoruTip3, SoruTip4],
+    imports: [CommonModule, ReactiveFormsModule, SoruTip0, SoruTip1, SoruTip2, SoruTip3],
     templateUrl: './anket-detay.html',
     styleUrls: ['./anket-detay.css']
 })
@@ -32,6 +33,8 @@ export class AnketDetay implements OnInit, OnDestroy {
 
     isUpdateMode = false;
     isExpired = false;
+    isNotStarted = false;
+    anketStatus: AnketStatus = 'active';
     originalAnswers: any[] = [];
     canSubmit = false;
 
@@ -104,7 +107,8 @@ export class AnketDetay implements OnInit, OnDestroy {
                     this.checkIfExpired();
                     this.initForm(this.originalAnswers);
 
-                    if (this.isExpired) {
+                    // Başlamamış veya süresi dolmuş anketlerde formu disable et
+                    if (this.isNotStarted || this.isExpired) {
                         this.anketForm.disable();
                     }
 
@@ -123,7 +127,10 @@ export class AnketDetay implements OnInit, OnDestroy {
         if (!this.anket) {
             return;
         }
-        this.isExpired = !this.anket.is_active;
+
+        this.anketStatus = getAnketStatusFromObject(this.anket);
+        this.isNotStarted = this.anketStatus === 'not_started';
+        this.isExpired = this.anketStatus === 'expired';
     }
 
     initForm(existingAnswers: any[] = []): void {
@@ -139,9 +146,24 @@ export class AnketDetay implements OnInit, OnDestroy {
 
                 if (answersForQuestion.length > 0) {
                     if (soru.soru_type === 0) {
-                        initialValue = answersForQuestion.map(a => a.answer_id);
+                        // Checkbox: Sadece metni eşleşenleri seç (şık değişmişse seçme)
+                        const validIds: number[] = [];
+                        answersForQuestion.forEach(ans => {
+                            const option = soru.soruSecenekleri?.find((s: any) => s.id === ans.answer_id);
+                            if (option && option.answer === ans.answer) {
+                                validIds.push(ans.answer_id);
+                            }
+                        });
+                        initialValue = validIds;
                     } else if (soru.soru_type === 1) {
-                        initialValue = answersForQuestion[0].answer_id;
+                        // Radio: Metni eşleşiyorsa seç (şık değişmişse seçme)
+                        const ans = answersForQuestion[0];
+                        const option = soru.soruSecenekleri?.find((s: any) => s.id === ans.answer_id);
+                        if (option && option.answer === ans.answer) {
+                            initialValue = ans.answer_id;
+                        } else {
+                            initialValue = null;
+                        }
                     } else if (soru.soru_type === 2) {
                         initialValue = parseInt(answersForQuestion[0].answer, 10);
                     } else {
@@ -285,10 +307,21 @@ export class AnketDetay implements OnInit, OnDestroy {
                     answer_id: val
                 });
             } else if (type === 2) {
+                // Seçilen değerin answer_id'sini bul
+                let answerId = null;
+                const soru = this.sorular.find(s => s.id === c.soru_id);
+                if (soru && soru.soruSecenekleri) {
+                    // String karşılaştırması yap (backend'den string geliyor, val string veya number olabilir)
+                    const secenek = soru.soruSecenekleri.find((s: any) => s.answer == val);
+                    if (secenek) {
+                        answerId = secenek.id;
+                    }
+                }
+
                 cevaplar.push({
                     soru_id: c.soru_id,
                     answer: val ? val.toString() : '',
-                    answer_id: null
+                    answer_id: answerId
                 });
             } else {
                 cevaplar.push({
@@ -323,5 +356,20 @@ export class AnketDetay implements OnInit, OnDestroy {
                 this.markFormGroupTouched(control);
             }
         });
+    }
+
+    getAnketTur(): string {
+        if (!this.anket) return '';
+
+        switch (this.anket.anket_tur) {
+            case 0:
+                return 'Normal Anket';
+            case 1:
+                return 'Video Eğitim Anketi';
+            case 2:
+                return 'İç Eğitim Anketi';
+            default:
+                return 'Anket';
+        }
     }
 }

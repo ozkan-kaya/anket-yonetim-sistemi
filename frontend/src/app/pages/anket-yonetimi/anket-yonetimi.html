@@ -68,11 +68,7 @@
               <td>{{ anket.start_date | date:'dd/MM/yyyy' }} {{ anket.start_time | slice:0:5 }}</td>
               <td>{{ anket.finish_date | date:'dd/MM/yyyy' }} {{ anket.finish_time | slice:0:5 }}</td>
               <td>
-                @if (anket.status) {
-                <span class="tag is-info">Aktif</span>
-                } @else {
-                <span class="tag is-danger">Süresi Doldu</span>
-                }
+                <span class="tag" [ngClass]="getStatusClass(anket)">{{ getStatusLabel(anket) }}</span>
               </td>
               <td class="has-text-right">
                 <div class="buttons is-right">
@@ -224,6 +220,13 @@
           </div>
         </div>
 
+        @if (isDateRangeInvalid) {
+        <div class="notification is-danger is-light">
+          <span class="icon mr-2"><i class="fas fa-exclamation-triangle"></i></span>
+          Başlangıç tarihi/saati, bitiş tarihi/saatinden büyük veya eşit olamaz.
+        </div>
+        }
+
         <div class="field">
           <label class="label">Hedef Departmanlar <span class="has-text-danger">*</span></label>
           <div class="control">
@@ -263,7 +266,7 @@
                   @switch (question.soru_type) {
                   @case (0) { Çoktan Seçmeli }
                   @case (1) { Tekil Seçim }
-                  @case (2) { Doğrusal Ölçek (1-5) }
+                  @case (2) { Doğrusal Ölçek ({{ question.scaleStart }}-{{ question.scaleEnd }}) }
                   @case (3) { Açık Uçlu }
                   }
                 </span>
@@ -345,10 +348,33 @@
             </div>
             }
 
-            <!-- Diğer Tipler İçin Bilgi -->
+            <!-- Doğrusal Ölçek Aralığı -->
             @if (question.soru_type === 2) {
-            <p class="help is-info mt-2"><i class="fas fa-info-circle"></i> Kullanıcı 1 ile 5 arasında bir puan
-              verecek.</p>
+            <div class="pl-4 mt-3" style="border-left: 2px solid #dbdbdb;">
+              <label class="label is-small">Ölçek Aralığı</label>
+              <div class="field has-addons">
+                <div class="control">
+                  <input class="input" type="number" min="0" [(ngModel)]="question.scaleStart"
+                    [ngModelOptions]="{standalone: true}" (ngModelChange)="generateScaleOptions(i)" placeholder="0"
+                    style="width: 100px;">
+                </div>
+                <div class="control">
+                  <span class="button is-static">ile</span>
+                </div>
+                <div class="control">
+                  <input class="input" type="number" min="0" [(ngModel)]="question.scaleEnd"
+                    [ngModelOptions]="{standalone: true}" (ngModelChange)="generateScaleOptions(i)" placeholder="10"
+                    style="width: 100px;">
+                </div>
+              </div>
+              @if (question.scaleStart > question.scaleEnd) {
+              <p class="help is-danger"><i class="fas fa-exclamation-triangle"></i> Başlangıç değeri bitiş değerinden
+                büyük olamaz.</p>
+              } @else {
+              <p class="help is-info"><i class="fas fa-info-circle"></i> Kullanıcı {{ question.scaleStart }} ile {{
+                question.scaleEnd }} arasında bir puan verecek.</p>
+              }
+            </div>
             }
             @if (question.soru_type === 3) {
             <p class="help is-info mt-2"><i class="fas fa-info-circle"></i> Kullanıcı metin olarak cevap verecek.</p>
@@ -380,7 +406,7 @@
     <footer class="modal-card-foot" style="justify-content: flex-end">
       <button class="button mr-3" (click)="closeModal()">İptal</button>
       <button class="button is-success" (click)="onSubmit()" [class.is-loading]="uploading"
-        [disabled]="anketForm.invalid || uploading || (isEditMode && !isFormDirtyOrFileSelected)">
+        [disabled]="anketForm.invalid || uploading || !isScaleQuestionsValid || isDateRangeInvalid || (isEditMode && !isFormDirtyOrFileSelected)">
         {{ isEditMode ? 'Güncelle' : 'Kaydet' }}
       </button>
     </footer>

@@ -1,9 +1,26 @@
-<div class="control">
-    @for (soruSikki of soruSecenekleri; track soruSikki.id) {
-    <label class="radio is-block mb-2" [style.cursor]="isDisabled ? 'not-allowed' : 'pointer'">
-        <input type="radio" [name]="'soru_' + soruId" [value]="soruSikki.id" [checked]="value === soruSikki.id"
-            (change)="onRadioChange(soruSikki.id)" [disabled]="isDisabled">
-        {{ soruSikki.answer }}
+<div class="field">
+    <label class="label is-size-5">
+        {{ soruIndex }}. {{ soruBasligi }}
+        @if (isImperative) {
+        <span class="has-text-danger">*</span>
+        }
     </label>
-    }
+    <div class="control">
+        <div class="is-flex is-align-items-center is-justify-content-space-between">
+            @for (val of scale; track val) {
+            <div class="has-text-centered" style="flex: 1;">
+                <label class="radio" [style.cursor]="isDisabled ? 'not-allowed' : 'pointer'">
+                    <input type="radio" [name]="'scale_' + soruId" [value]="val" [checked]="value === val"
+                        (change)="onRadioChange(val)" [disabled]="isDisabled">
+                    <br>
+                    <span class="is-size-7">{{ val }}</span>
+                </label>
+            </div>
+            }
+        </div>
+        <div class="is-flex is-justify-content-space-between mt-2">
+            <span class="is-size-7 has-text-grey">{{ minLabel }}</span>
+            <span class="is-size-7 has-text-grey">{{ maxLabel }}</span>
+        </div>
+    </div>
 </div>

@@ -1,6 +1,7 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Anket } from '../../interfaces/anket-interface';
+import { getAnketStatusFromObject, getAnketStatusLabel, getAnketStatusClass, AnketStatus } from '../../utils/date-utils';
 
 @Component({
   selector: 'app-anket-card',
@@ -18,8 +19,16 @@ export class AnketCard {
     this.cardClick.emit(this.anket);
   }
 
-  get isExpired(): boolean {
-    return !this.anket.status;
+  getAnketStatus(): AnketStatus {
+    return getAnketStatusFromObject(this.anket);
+  }
+
+  getStatusLabel(): string {
+    return getAnketStatusLabel(this.getAnketStatus());
+  }
+
+  getStatusClass(): string {
+    return getAnketStatusClass(this.getAnketStatus());
   }
 
   getDepartmentNames(): string {
@@ -35,4 +44,18 @@ export class AnketCard {
       return '';
     }).filter(name => name).join(', ');
   }
+
+  getAnketTur(): string {
+    switch (this.anket.anket_tur) {
+      case 0:
+        return 'Normal Anket';
+      case 1:
+        return 'Video Eğitim Anketi';
+      case 2:
+        return 'İç Eğitim Anketi';
+      default:
+        return 'Anket';
+    }
+  }
 }
+

@@ -88,9 +88,6 @@ export class AnketCardList {
   filteredAnketler = computed(() => {
     let temp = [...this.anketler()];
 
-    // Süresi dolanları gizle
-    temp = temp.filter(d => d.status);
-
     // Arama
     if (this.debouncedSearchText().trim()) {
       const q = this.debouncedSearchText().toLowerCase();

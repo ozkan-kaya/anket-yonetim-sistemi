@@ -67,12 +67,42 @@ function checkRole(requiredYetkiler) {
 
 // YARDIMCI FONKSİYONLAR
 
-function getSoruDirectory(anketId) {
-  return path.join(__dirname, 'uploads', 'anket_dokuman', anketId.toString());
+function getUploadsDirectory() {
+  return path.join(__dirname, 'uploads');
 }
 
-function getAnketDirectory(anketId) {
-  return path.join(__dirname, 'uploads', 'anket_dokuman', anketId.toString());
+async function updateAnketActiveStatus() {
+  try {
+    // Süresi dolmuş anketleri pasife çek
+    await pool.query(`
+      UPDATE portal_anket 
+      SET is_active = false, status = false
+      WHERE is_deleted = false
+        AND is_active = true
+        AND (finish_date + finish_time) < NOW()
+    `);
+
+    // Henüz başlamamış anketleri pasife çek
+    await pool.query(`
+      UPDATE portal_anket 
+      SET is_active = false
+      WHERE is_deleted = false
+        AND is_active = true
+        AND (start_date + start_time) > NOW()
+    `);
+
+    // Aktif olması gereken anketleri aktifleştir  
+    await pool.query(`
+      UPDATE portal_anket 
+      SET is_active = true, status = true
+      WHERE is_deleted = false
+        AND is_active = false
+        AND (start_date + start_time) <= NOW()
+        AND (finish_date + finish_time) >= NOW()
+    `);
+  } catch (err) {
+    console.error('Anket aktiflik durumu güncellenirken hata:', err);
+  }
 }
 
 // AUTH
@@ -149,13 +179,8 @@ app.get('/api/departmanlar', authenticateToken, async (req, res) => {
 // Anket Listesi
 app.get('/api/anketler', authenticateToken, async (req, res) => {
   try {
-    // Süresi dolanları pasife çek
-    await pool.query(
-      `UPDATE portal_anket 
-       SET status = false 
-       WHERE to_timestamp(to_char(finish_date, 'YYYY-MM-DD') || ' ' || finish_time, 'YYYY-MM-DD HH24:MI') < NOW() 
-       AND status = true`
-    );
+    // Tüm anketlerin aktiflik durumunu güncelle
+    await updateAnketActiveStatus();
 
     const privilegedYetkiler = ['admin', 'anket_yonetimi', 'anket_raporlama'];
     const userYetkiler = req.user.yetkiler || [];
@@ -212,6 +237,9 @@ app.get('/api/anketler', authenticateToken, async (req, res) => {
 
 app.get('/api/anketler/benim', authenticateToken, async (req, res) => {
   try {
+    // Tüm anketlerin aktiflik durumunu güncelle
+    await updateAnketActiveStatus();
+
     const myAnketResult = await pool.query(
       `SELECT DISTINCT A.*, U.user_name as creator_name,
               EXISTS(
@@ -267,15 +295,8 @@ app.get('/api/anketler/:id', authenticateToken, async (req, res) => {
   try {
     const anketId = parseInt(req.params.id, 10);
 
-    // Süresi dolanı pasife çek
-    await pool.query(
-      `UPDATE portal_anket 
-       SET status = false 
-       WHERE id = $1 
-       AND to_timestamp(to_char(finish_date, 'YYYY-MM-DD') || ' ' || finish_time, 'YYYY-MM-DD HH24:MI') < NOW() 
-       AND status = true`,
-      [anketId]
-    );
+    // Tüm anketlerin aktiflik durumunu güncelle
+    await updateAnketActiveStatus();
 
     const anketDetailResult = await pool.query(
       `SELECT A.id, A.title, A.aciklama, A.start_time, A.finish_time, A.is_active, A.is_deleted, A.status, A.creator_id, A.anket_tur, A.created_date, A.updated_date, 
@@ -304,7 +325,8 @@ app.get('/api/anketler/:id', authenticateToken, async (req, res) => {
 
     // Şıklar
     for (const soru of sorular) {
-      if (soru.soru_type === 0 || soru.soru_type === 1) {
+      // Seçenekli sorular ve doğrusal ölçek için şıkları al
+      if (soru.soru_type === 0 || soru.soru_type === 1 || soru.soru_type === 2) {
         const soruSecenekleriResult = await pool.query(
           `SELECT * FROM portal_anket_soru_siklari
            WHERE soru_id = $1 AND is_deleted = false
@@ -550,9 +572,10 @@ app.put('/api/anketler/:id', authenticateToken, checkRole(['admin', 'anket_yonet
           const existingOptionIds = existingOptionsResult.rows.map(r => r.id);
           const incomingOptionIds = q.soruSecenekleri.filter(o => o.id).map(o => o.id);
 
-          // Silinen şıkları pasife al
+          // Silinen şıkları işle
           const optionsToDelete = existingOptionIds.filter(id => !incomingOptionIds.includes(id));
           for (const id of optionsToDelete) {
+            // Tüm tipler için Soft Delete (pasife al)
             await client.query('UPDATE portal_anket_soru_siklari SET is_deleted = true WHERE id = $1', [id]);
           }
 
@@ -615,17 +638,19 @@ app.post('/api/anketler/:id/dokuman', authenticateToken, checkRole(['admin', 'an
       return res.status(400).json({ message: 'Dosya yüklenmedi.' });
     }
 
-    const targetDir = getAnketDirectory(anketId);
+    const targetDir = getUploadsDirectory();
     await fs.promises.mkdir(targetDir, { recursive: true });
 
-    // Dosya adını temizle
-    const safeFilename = dosya.originalname.replace(/[^a-zA-Z0-9.]/g, '_');
-    const filename = safeFilename;
+    // Dosya adını temizle ve zaman damgası ekle
+    const timestamp = Date.now();
+    const ext = path.extname(dosya.originalname);
+    const baseName = path.basename(dosya.originalname, ext).replace(/[^a-zA-Z0-9]/g, '_');
+    const filename = `${baseName}-${timestamp}${ext}`;
 
     const filePath = path.join(targetDir, filename);
     await fs.promises.writeFile(filePath, dosya.buffer);
 
-    const relativeUrl = `anket_dokuman/${anketId}/${filename}`;
+    const relativeUrl = filename;
 
     // Kontrol et
     const checkResult = await pool.query(
@@ -664,24 +689,19 @@ app.post('/api/sorular/:id/dokuman', authenticateToken, checkRole(['admin', 'ank
       return res.status(400).json({ message: 'Dosya yüklenmedi.' });
     }
 
-    // Anket ID'yi al
-    const soruResult = await pool.query('SELECT anket_id FROM portal_anket_sorular WHERE id = $1', [soruId]);
-    if (soruResult.rows.length === 0) {
-      return res.status(404).json({ message: 'Soru bulunamadı.' });
-    }
-    const anketId = soruResult.rows[0].anket_id;
-
-    const targetDir = getSoruDirectory(anketId, soruId);
+    const targetDir = getUploadsDirectory();
     await fs.promises.mkdir(targetDir, { recursive: true });
 
-    // Dosya adını temizle
-    const safeFilename = dosya.originalname.replace(/[^a-zA-Z0-9.]/g, '_');
-    const filename = safeFilename;
+    // Dosya adını temizle ve zaman damgası ekle
+    const timestamp = Date.now();
+    const ext = path.extname(dosya.originalname);
+    const baseName = path.basename(dosya.originalname, ext).replace(/[^a-zA-Z0-9]/g, '_');
+    const filename = `${baseName}-${timestamp}${ext}`;
 
     const filePath = path.join(targetDir, filename);
     await fs.promises.writeFile(filePath, dosya.buffer);
 
-    const relativeUrl = `anket_dokuman/${anketId}/${filename}`;
+    const relativeUrl = filename;
 
     // Kontrol et
     const checkResult = await pool.query(
@@ -753,14 +773,17 @@ app.post('/api/anketler/:anketId/sorular', authenticateToken, checkRole(['admin'
 
     // Dosya Kaydet varsa
     if (dosya) {
-      const targetDir = getSoruDirectory(anketId, soruId);
+      const targetDir = getUploadsDirectory();
       await fs.promises.mkdir(targetDir, { recursive: true });
 
+      const timestamp = Date.now();
       const ext = path.extname(dosya.originalname);
-      const filePath = path.join(targetDir, `${soruId}${ext}`);
+      const baseName = path.basename(dosya.originalname, ext).replace(/[^a-zA-Z0-9]/g, '_');
+      const filename = `${baseName}-${timestamp}${ext}`;
+      const filePath = path.join(targetDir, filename);
       await fs.promises.writeFile(filePath, dosya.buffer);
 
-      const relativeUrl = `anket_dokuman/${anketId}/sorular/${soruId}/${soruId}${ext}`;
+      const relativeUrl = filename;
 
       await pool.query(
         'INSERT INTO portal_anket_dokuman (type, connected_id, url) VALUES ($1, $2, $3)',
@@ -889,10 +912,25 @@ app.post('/api/anketler/:anketId/cevapla', authenticateToken, async (req, res) =
 
     // Cevapları kaydet
     for (const cevap of cevaplar) {
+      let answerText = cevap.answer;
+      const answerId = cevap.answer_id;
+
+      // Seçenekli sorular için (type 0, 1) answer_id'den cevap metnini çek
+      if (answerId !== null && answerId !== undefined) {
+        const secenekResult = await client.query(
+          'SELECT answer FROM portal_anket_soru_siklari WHERE id = $1',
+          [answerId]
+        );
+
+        if (secenekResult.rows.length > 0) {
+          answerText = secenekResult.rows[0].answer;
+        }
+      }
+
       await client.query(
         `INSERT INTO portal_anket_user_answer (soru_id, anket_user_id, answer, answer_id, anket_id, created_date)
          VALUES ($1, $2, $3, $4, $5, NOW())`,
-        [cevap.soru_id, anketUserId, cevap.answer, cevap.answer_id, anketId]
+        [cevap.soru_id, anketUserId, answerText, answerId, anketId]
       );
     }
 
@@ -921,18 +959,17 @@ app.get('/api/raporlar/anket-istatistik/:id', authenticateToken, checkRole(['adm
       [anketId]
     );
 
-    // Cevap Dağılımı
+    // Cevap Dağılımı - answer metnine göre gruplama
     const cevapDagilimResult = await pool.query(
       `SELECT
         S.id as soru_id, S.title as soru_baslik, S.soru_type,
-        COALESCE(SS.answer, A.answer) as answer, 
-        A.answer_id, 
+        COALESCE(A.answer, SS.answer) as answer,
         COUNT(*) as cevap_sayisi
        FROM portal_anket_user_answer A
        JOIN portal_anket_sorular S ON A.soru_id = S.id
        LEFT JOIN portal_anket_soru_siklari SS ON A.answer_id = SS.id
        WHERE A.anket_id = $1
-       GROUP BY S.id, S.title, S.soru_type, A.answer, A.answer_id, SS.answer
+       GROUP BY S.id, S.title, S.soru_type, COALESCE(A.answer, SS.answer)
        ORDER BY S.id, cevap_sayisi DESC`,
       [anketId]
     );
@@ -978,7 +1015,7 @@ app.get('/api/raporlar/katilimci-cevaplari/:anketUserId', authenticateToken, che
     const answersResult = await pool.query(
       `SELECT
         S.id as soru_id, S.title as soru_baslik, S.soru_type,
-        COALESCE(SS.answer, A.answer) as answer, 
+        COALESCE(A.answer, SS.answer) as answer, 
         A.answer_id
        FROM portal_anket_user_answer A
        JOIN portal_anket_sorular S ON A.soru_id = S.id
@@ -998,10 +1035,10 @@ app.get('/api/raporlar/katilimci-cevaplari/:anketUserId', authenticateToken, che
 // SUNUCU BASLATMA
 
 app.listen(PORT, () => {
-  const uploadsDir = path.join(__dirname, 'uploads', 'anket_dokuman');
+  const uploadsDir = path.join(__dirname, 'uploads');
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
-    console.log("'uploads/anket_dokuman' klasörü oluşturuldu.");
+    console.log("'uploads' klasörü oluşturuldu.");
   }
   console.log(`Sunucu ${BASE_URL} adresinde başlatıldı.`);
 });

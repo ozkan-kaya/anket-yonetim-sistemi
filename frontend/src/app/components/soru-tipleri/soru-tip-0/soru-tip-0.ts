@@ -4,40 +4,52 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormsModule } from '@angular/f
 import { SoruSecenegi } from '../../../interfaces/anket-interface';
 
 @Component({
-    selector: 'app-soru-tip-1',
+    selector: 'app-soru-tip-0',
     standalone: true,
     imports: [CommonModule, FormsModule],
-    templateUrl: './soru-tip-1.html',
-    styleUrls: ['./soru-tip-1.css'],
+    templateUrl: './soru-tip-0.html',
+    styleUrls: ['./soru-tip-0.css'],
     providers: [
         {
             provide: NG_VALUE_ACCESSOR,
-            useExisting: forwardRef(() => SoruTip1),
+            useExisting: forwardRef(() => SoruTip0),
             multi: true
         }
     ]
 })
-export class SoruTip1 implements ControlValueAccessor {
+export class SoruTip0 implements ControlValueAccessor {
     @Input() soruSecenekleri: SoruSecenegi[] = [];
-    @Input() soruId!: number;
     @Input() soruBasligi: string = '';
     @Input() soruIndex: number = 0;
     @Input() isImperative: boolean = false;
 
-    value: number | null = null;
+    selectedIds: number[] = [];
     isDisabled = false;
 
     onChangeFn = (value: any) => { };
     onTouchedFn = () => { };
 
-    onRadioChange(id: number): void {
-        this.value = id;
-        this.onChangeFn(this.value);
+    isChecked(id: number): boolean {
+        return this.selectedIds.includes(id);
+    }
+
+    onChange(event: Event, id: number): void {
+        const isChecked = (event.target as HTMLInputElement).checked;
+        if (isChecked) {
+            this.selectedIds = [...this.selectedIds, id];
+        } else {
+            this.selectedIds = this.selectedIds.filter(x => x !== id);
+        }
+        this.onChangeFn(this.selectedIds);
         this.onTouchedFn();
     }
 
     writeValue(obj: any): void {
-        this.value = obj;
+        if (obj) {
+            this.selectedIds = obj;
+        } else {
+            this.selectedIds = [];
+        }
     }
 
     registerOnChange(fn: any): void {

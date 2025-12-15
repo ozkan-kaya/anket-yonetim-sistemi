@@ -1,7 +1,6 @@
-import { Component, Input, forwardRef } from '@angular/core';
+import { Component, Input, forwardRef, OnInit, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormsModule } from '@angular/forms';
-import { SoruSecenegi } from '../../../interfaces/anket-interface';
 
 @Component({
     selector: 'app-soru-tip-2',
@@ -17,18 +16,50 @@ import { SoruSecenegi } from '../../../interfaces/anket-interface';
         }
     ]
 })
-export class SoruTip2 implements ControlValueAccessor {
-    @Input() soruSecenekleri: SoruSecenegi[] = [];
+export class SoruTip2 implements ControlValueAccessor, OnInit, OnChanges {
     @Input() soruId!: number;
+    @Input() soruSecenekleri: any[] = [];
+    @Input() soruBasligi: string = '';
+    @Input() soruIndex: number = 0;
+    @Input() isImperative: boolean = false;
 
+    scale: number[] = [];
     value: number | null = null;
     isDisabled = false;
+
+    minLabel = 'En Düşük';
+    maxLabel = 'En Yüksek';
 
     onChangeFn = (value: any) => { };
     onTouchedFn = () => { };
 
-    onRadioChange(id: number): void {
-        this.value = id;
+    ngOnInit(): void {
+        this.updateScaleFromOptions();
+    }
+
+    ngOnChanges(changes: SimpleChanges): void {
+        if (changes['soruSecenekleri']) {
+            this.updateScaleFromOptions();
+        }
+    }
+
+    private updateScaleFromOptions(): void {
+        if (this.soruSecenekleri && this.soruSecenekleri.length > 0) {
+            const values = this.soruSecenekleri
+                .map(s => parseInt(s.answer, 10))
+                .filter(v => !isNaN(v))
+                .sort((a, b) => a - b);
+
+            if (values.length > 0) {
+                this.scale = values;
+                this.minLabel = `En Düşük (${values[0]})`;
+                this.maxLabel = `En Yüksek (${values[values.length - 1]})`;
+            }
+        }
+    }
+
+    onRadioChange(val: number): void {
+        this.value = val;
         this.onChangeFn(this.value);
         this.onTouchedFn();
     }
